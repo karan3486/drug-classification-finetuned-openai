@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Medicine Classification Assistant</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.0.2/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      /* Background image styling */
+      body {
+        background-image: url("https://wp.bicyclehealth.com/wp-content/uploads/2023/02/628c2910ccae8c3f9bf0aea7_drugs-piled-together.jpg");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+      }
+
+      /* Chatbot container gradient styling */
+      .chatbot-container {
+        background: linear-gradient(to right, #ffffff, #e6f0ff, #dcdceb);
+      }
+
+      /* Style for moving icons */
+      .moving-icon-top,
+      .moving-icon-bottom {
+        position: absolute;
+        opacity: 0.1;
+        width: 100px;
+        animation: float 10s ease-in-out infinite;
+      }
+
+      .moving-icon-top {
+        top: 10%;
+        left: -50px;
+      }
+
+      .moving-icon-bottom {
+        bottom: 10%;
+        right: -50px;
+        animation-direction: reverse;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        50% {
+          transform: translateX(100vw);
+        }
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  </head>
+  <body class="flex items-center justify-center min-h-screen relative">
+    <!-- Moving icons in the background -->
+    <img
+      src="https://cdn-icons-png.flaticon.com/512/4712/4712086.png"
+      alt="Medicine Icon Top"
+      class="moving-icon-top"
+    />
+    <img
+      src="https://cdn-icons-png.flaticon.com/512/4703/4703538.png"
+      alt="Medicine Icon Bottom"
+      class="moving-icon-bottom"
+    />
+
+    <div
+      class="w-full max-w-3xl chatbot-container rounded-lg border-2 border-purple-300 shadow-lg p-8 relative z-10"
+    >
+      <h2 class="text-4xl font-bold text-center mb-6 text-gray-700">
+        Medicine Classification Assistant
+      </h2>
+      <div
+        id="chat-window"
+        class="overflow-y-auto h-[36rem] border border-gray-300 p-6 rounded-lg mb-4 bg-gradient-to-br from-gray-100 to-gray-200"
+      >
+        <div class="text-right mb-4">
+          <div
+            class="inline-block p-4 rounded-lg bg-gradient-to-r from-purple-500 to-pink-600 text-white"
+          >
+            I am your Medical Assistant. How may I help you?
+          </div>
+        </div>
+        <!-- Chat messages will appear here -->
+      </div>
+      <form id="chat-form" class="flex items-center h-12">
+        <input
+          type="text"
+          id="question-input"
+          class="flex-grow h-full p-4 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+          placeholder="Enter medicine name or symptom..."
+        />
+        <button
+          type="submit"
+          class="h-full bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 rounded-r-lg focus:outline-none focus:ring-1 focus:ring-purple-500"
+        >
+          Send
+        </button>
+      </form>
+    </div>
+
+    <script>
+      const chatForm = document.getElementById("chat-form");
+      const questionInput = document.getElementById("question-input");
+      const chatWindow = document.getElementById("chat-window");
+
+      // Function to add a message to the chat window
+      function addMessage(content, isUser, isLoader = false) {
+        const messageDiv = document.createElement("div");
+        messageDiv.className = isUser ? "text-right mb-4" : "text-left mb-4";
+
+        if (isLoader) {
+          messageDiv.innerHTML = `
+            <div class="inline-block p-2 rounded-lg bg-gray-200 flex items-center justify-center">
+              <img src="/static/SVKl.gif" alt="Loading..." class="w-16 h-16 inline-block">
+            </div>
+          `;
+          messageDiv.id = "loading-spinner"; // Assign an ID for easy removal
+        } else {
+          messageDiv.innerHTML = `
+            <div class="inline-block p-4 rounded-lg ${
+              isUser
+                ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white"
+                : "bg-gradient-to-r from-blue-200 to-purple-200 text-gray-800"
+            }">
+              ${content}
+            </div>
+          `;
+        }
+
+        chatWindow.appendChild(messageDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight; // Scroll to the bottom
+      }
+
+      // Handle form submission
+      chatForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const question = questionInput.value.trim();
+        if (!question) return;
+
+        addMessage(question, true); // Add user message
+        questionInput.value = ""; // Clear input field
+
+        // Show loader while waiting for response
+        addMessage("", false, true);
+
+        // Send the question to the server
+        try {
+          const response = await axios.post("/ask", { question });
+
+          // Remove loader once the response is received
+          const loader = document.getElementById("loading-spinner");
+          if (loader) loader.remove();
+
+          addMessage(response.data.answer, false); // Add bot message
+        } catch (error) {
+          const loader = document.getElementById("loading-spinner");
+          if (loader) loader.remove();
+
+          addMessage("Error: Could not get a response.", false); // Show error message
+        }
+      });
+    </script>
+  </body>
+</html>
